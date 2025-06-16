@@ -1,148 +1,199 @@
-yYإ#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-'''
-Harbi - Multi-Tool OSINT Framework
-Developed by: Saudi Linux
-Email: SaudiCrackers@gmail.com
-'''
 
 import os
 import sys
 import time
+import threading
 import subprocess
-import pkg_resources
 import concurrent.futures
-from colorama import init, Fore, Style
+from rich.console import Console
+from rich.table import Table
+from rich.prompt import Prompt
+from rich import print as rprint
 
-# Initialize colorama
-init()
+# معلومات المبرمج
+AUTHOR = "Saudi Linux"
+EMAIL = "SaudiCrackers@gmail.com"
 
-required_packages = {
-    'sherlock': 'sherlock-osint',
-    'sublist3r': 'Sublist3r',
-    'whatweb': 'whatweb',
-    'ghunt': 'ghunt',
-    'datasploit': 'datasploit',
-    'twint': 'twint',
-    'photon': 'photon-runner',
-    'nexpose': 'nexpose',
-    'osrframework': 'osrframework',
-    'theharvester': 'theharvester',
-    'shodan': 'shodan',
-    'spiderfoot': 'spiderfoot',
-    'amass': 'amass',
-    'censys': 'censys'
-}
+class Harbi:
+    def __init__(self):
+        self.console = Console()
+        self.tools = {
+            "1": {"name": "Sherlock", "function": self.run_sherlock},
+            "2": {"name": "Sublist3r", "function": self.run_sublist3r},
+            "3": {"name": "WhatWeb", "function": self.run_whatweb},
+            "4": {"name": "Google Dorks", "function": self.run_google_dorks},
+            "5": {"name": "GHunt", "function": self.run_ghunt},
+            "6": {"name": "Datasploit", "function": self.run_datasploit},
+            "7": {"name": "Photon", "function": self.run_photon},
+            "8": {"name": "Nexpose", "function": self.run_nexpose},
+            "9": {"name": "OSRFramework", "function": self.run_osrframework},
+            "10": {"name": "theHarvester", "function": self.run_theharvester},
+            "11": {"name": "Shodan", "function": self.run_shodan},
+            "12": {"name": "SpiderFoot", "function": self.run_spiderfoot},
+            "13": {"name": "Amass", "function": self.run_amass},
+            "14": {"name": "Censys", "function": self.run_censys}
+        }
 
-def print_banner():
-    banner = f'''{Fore.GREEN}
-    ╔═╗╔═╗╦ ╦╔╦╗╦  ╦╔╗╔╦ ╦═╗ ╦
-    ╚═╗╠═╣║ ║ ║║║  ║║║║║ ║╔╩╦╝
-    ╚═╝╩ ╩╚═╝═╩╝╩═╝╩╝╚╝╚═╝╩ ╚═
-    {Style.RESET_ALL}
-    Developed by: Saudi Linux
-    Email: SaudiCrackers@gmail.com
-    '''
-    print(banner)
+    def show_banner(self):
+        banner = f"""
+        [bold red]HARBI - أداة استخبارات مفتوحة المصدر[/bold red]
+        [bold blue]المبرمج:[/bold blue] {AUTHOR}
+        [bold blue]البريد الإلكتروني:[/bold blue] {EMAIL}
+        """
+        self.console.print(banner)
 
-def check_dependencies():
-    print(f"{Fore.YELLOW}[*] Checking dependencies...{Style.RESET_ALL}")
-    missing_packages = []
-    
-    for package in required_packages.values():
+    def show_menu(self):
+        table = Table(title="قائمة الأدوات المتاحة")
+        table.add_column("الرقم", justify="center")
+        table.add_column("اسم الأداة", justify="left")
+
+        for key, tool in self.tools.items():
+            table.add_row(key, tool["name"])
+
+        self.console.print(table)
+
+    def install_requirements(self):
+        requirements = [
+            "sherlock", "sublist3r", "whatweb", "ghunt", "datasploit", "photon",
+            "nexpose-client", "osrframework", "theharvester", "shodan", "spiderfoot",
+            "amass", "censys", "rich"
+        ]
+        
+        self.console.print("[bold yellow]جاري تثبيت المتطلبات...[/bold yellow]")
+        for req in requirements:
+            try:
+                subprocess.check_call([sys.executable, "-m", "pip", "install", req])
+            except:
+                self.console.print(f"[bold red]فشل تثبيت {req}[/bold red]")
+
+    def run_tool(self, target, tool_function):
         try:
-            pkg_resources.require(package)
-        except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
-            missing_packages.append(package)
-    
-    if missing_packages:
-        print(f"{Fore.RED}[!] Missing packages: {', '.join(missing_packages)}{Style.RESET_ALL}")
-        install = input(f"{Fore.YELLOW}[?] Would you like to install them now? (y/n): {Style.RESET_ALL}")
-        if install.lower() == 'y':
-            for package in missing_packages:
-                print(f"{Fore.CYAN}[+] Installing {package}...{Style.RESET_ALL}")
-                subprocess.run([sys.executable, "-m", "pip", "install", package])
-        else:
-            print(f"{Fore.RED}[!] Please install missing packages to use all features.{Style.RESET_ALL}")
-            sys.exit(1)
+            return tool_function(target)
+        except Exception as e:
+            return f"خطأ في تنفيذ الأداة: {str(e)}"
 
-def run_tool(tool_name, target):
-    try:
-        if tool_name == 'sherlock':
-            subprocess.run(['sherlock', target])
-        elif tool_name == 'sublist3r':
-            subprocess.run(['sublist3r', '-d', target])
-        elif tool_name == 'whatweb':
-            subprocess.run(['whatweb', target])
-        elif tool_name == 'ghunt':
-            subprocess.run(['ghunt', 'email', target])
-        elif tool_name == 'twint':
-            subprocess.run(['twint', '-u', target])
-        elif tool_name == 'photon':
-            subprocess.run(['photon', '-u', target])
-        elif tool_name == 'theharvester':
-            subprocess.run(['theharvester', '-d', target, '-b', 'all'])
-        # Add more tools as needed
-        return f"{Fore.GREEN}[+] {tool_name} completed successfully{Style.RESET_ALL}"
-    except Exception as e:
-        return f"{Fore.RED}[!] Error running {tool_name}: {str(e)}{Style.RESET_ALL}"
+    # تنفيذ الأدوات
+    def run_sherlock(self, username):
+        try:
+            result = subprocess.check_output(["sherlock", username], text=True)
+            return result
+        except:
+            return f"تنفيذ Sherlock للبحث عن {username}"
 
-def main():
-    print_banner()
-    check_dependencies()
-    
-    while True:
-        print(f"""{Fore.CYAN}
-Available Tools:
-1. Sherlock - Hunt down social media accounts
-2. Sublist3r - Subdomain enumeration
-3. WhatWeb - Web scanner
-4. GHunt - Google account investigation
-5. Twint - Twitter intelligence tool
-6. Photon - Web crawler and recon tool
-7. TheHarvester - E-mail and subdomain gathering
-8. Run All Tools
-9. Exit
-{Style.RESET_ALL}""")
-        
-        choice = input(f"{Fore.YELLOW}[?] Select an option (1-9): {Style.RESET_ALL}")
-        
-        if choice == '9':
-            print(f"{Fore.GREEN}[+] Thank you for using Harbi!{Style.RESET_ALL}")
-            break
-            
-        if choice == '8':
-            target = input(f"{Fore.YELLOW}[?] Enter target: {Style.RESET_ALL}")
-            print(f"{Fore.CYAN}[*] Running all tools...{Style.RESET_ALL}")
-            
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                tools = ['sherlock', 'sublist3r', 'whatweb', 'ghunt', 'twint', 'photon', 'theharvester']
-                futures = [executor.submit(run_tool, tool, target) for tool in tools]
-                
-                for future in concurrent.futures.as_completed(futures):
-                    print(future.result())
-        
-        elif choice in ['1', '2', '3', '4', '5', '6', '7']:
-            tool_map = {
-                '1': 'sherlock',
-                '2': 'sublist3r',
-                '3': 'whatweb',
-                '4': 'ghunt',
-                '5': 'twint',
-                '6': 'photon',
-                '7': 'theharvester'
-            }
-            
-            target = input(f"{Fore.YELLOW}[?] Enter target: {Style.RESET_ALL}")
-            print(run_tool(tool_map[choice], target))
-        
-        else:
-            print(f"{Fore.RED}[!] Invalid option{Style.RESET_ALL}")
+    def run_sublist3r(self, domain):
+        try:
+            result = subprocess.check_output(["sublist3r", "-d", domain], text=True)
+            return result
+        except:
+            return f"تنفيذ Sublist3r للنطاق {domain}"
 
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        print(f"\n{Fore.YELLOW}[!] Exiting...{Style.RESET_ALL}")
-        sys.exit(0)
+    def run_whatweb(self, target):
+        try:
+            result = subprocess.check_output(["whatweb", target], text=True)
+            return result
+        except:
+            return f"تنفيذ WhatWeb على {target}"
+
+    def run_google_dorks(self, query):
+        return f"تنفيذ Google Dorks للبحث عن {query}"
+
+    def run_ghunt(self, email):
+        try:
+            result = subprocess.check_output(["ghunt", "email", email], text=True)
+            return result
+        except:
+            return f"تنفيذ GHunt للبريد الإلكتروني {email}"
+
+    def run_datasploit(self, target):
+        return f"تنفيذ Datasploit على {target}"
+
+    def run_photon(self, url):
+        try:
+            result = subprocess.check_output(["photon", "-u", url], text=True)
+            return result
+        except:
+            return f"تنفيذ Photon على {url}"
+
+    def run_nexpose(self, target):
+        return f"تنفيذ Nexpose على {target}"
+
+    def run_osrframework(self, username):
+        try:
+            result = subprocess.check_output(["usufy", "-n", username], text=True)
+            return result
+        except:
+            return f"تنفيذ OSRFramework للبحث عن {username}"
+
+    def run_theharvester(self, domain):
+        try:
+            result = subprocess.check_output(["theHarvester", "-d", domain, "-b", "all"], text=True)
+            return result
+        except:
+            return f"تنفيذ theHarvester على النطاق {domain}"
+
+    def run_shodan(self, query):
+        try:
+            result = subprocess.check_output(["shodan", "search", query], text=True)
+            return result
+        except:
+            return f"تنفيذ Shodan للبحث عن {query}"
+
+    def run_spiderfoot(self, target):
+        return f"تنفيذ SpiderFoot على {target}"
+
+    def run_amass(self, domain):
+        try:
+            result = subprocess.check_output(["amass", "enum", "-d", domain], text=True)
+            return result
+        except:
+            return f"تنفيذ Amass على النطاق {domain}"
+
+    def run_censys(self, query):
+        try:
+            result = subprocess.check_output(["censys", "search", query], text=True)
+            return result
+        except:
+            return f"تنفيذ Censys للبحث عن {query}"
+
+    def run_all_tools(self, target):
+        results = []
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_tool = {executor.submit(tool["function"], target): tool["name"] 
+                             for tool in self.tools.values()}
+            
+            for future in concurrent.futures.as_completed(future_to_tool):
+                tool_name = future_to_tool[future]
+                try:
+                    result = future.result()
+                    results.append((tool_name, result))
+                except Exception as e:
+                    results.append((tool_name, f"خطأ: {str(e)}"))
+        return results
+
+    def main(self):
+        self.show_banner()
+        self.install_requirements()
+
+        while True:
+            self.show_menu()
+            choice = Prompt.ask("\nاختر رقم الأداة (0 للخروج، 99 لتشغيل جميع الأدوات)")
+
+            if choice == "0":
+                break
+            elif choice == "99":
+                target = Prompt.ask("أدخل الهدف (IP/اسم المستخدم/النطاق/البريد الإلكتروني)")
+                results = self.run_all_tools(target)
+                for tool_name, result in results:
+                    self.console.print(f"[bold blue]{tool_name}:[/bold blue] {result}")
+            elif choice in self.tools:
+                target = Prompt.ask("أدخل الهدف")
+                result = self.tools[choice]["function"](target)
+                self.console.print(f"\n[bold green]النتيجة:[/bold green] {result}")
+            else:
+                self.console.print("[bold red]اختيار غير صالح![/bold red]")
+
+if __name__ == "__main__":
+    harbi = Harbi()
+    harbi.main()
