@@ -1,0 +1,17 @@
+colorama>=0.4.6
+sherlock-osint
+Sublist3r
+whatweb
+ghunt
+datasploit
+twint
+photon-runner
+nexpose
+osrframework
+theharvester
+shodan
+spiderfoot
+amass
+censys
+concurrent-futures
+pkg_resources
